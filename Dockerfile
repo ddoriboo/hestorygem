@@ -21,7 +21,7 @@ COPY main.py .
 # 간단한 정적 프론트엔드 생성 (React 빌드 대신)
 WORKDIR /app
 RUN mkdir -p ./static
-COPY simple_frontend.html ./static/index.html
+COPY webapp.html ./static/index.html
 
 # 환경 변수 설정
 ENV PYTHONPATH=/app

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>He'story - AI 기반 시니어 자서전 작성 서비스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+            font-size: 20px;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            min-height: 80vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #e9ecef;
+        }
+        
+        h1 {
+            font-size: 3em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.3em;
+            color: #7f8c8d;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 18px 35px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 15px 10px;
+            border: none;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .form-group {
+            margin: 25px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        .session-list {
+            display: grid;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .session-item {
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .session-item:hover {
+            background: #e8f4f8;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .session-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .session-description {
+            color: #6c757d;
+            font-size: 1em;
+        }
+        
+        .interview-area {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            min-height: 400px;
+        }
+        
+        .ai-message {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border-left: 5px solid #667eea;
+        }
+        
+        .user-message {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border-left: 5px solid #ffc107;
+            text-align: right;
+        }
+        
+        .voice-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .record-btn {
+            background: #dc3545;
+            font-size: 1.3em;
+            padding: 20px 40px;
+            border-radius: 50px;
+        }
+        
+        .record-btn:hover {
+            background: #c82333;
+        }
+        
+        .record-btn.recording {
+            background: #28a745;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        
+        .nav-buttons {
+            text-align: center;
+            margin: 30px 0;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .current-user {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="current-user" id="currentUser" style="display: none;">
+            <span id="userName"></span>
+            <button class="btn logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+        
+        <div class="header">
+            <h1>🌟 He'story</h1>
+            <p class="subtitle">AI 기반 시니어 자서전 작성 서비스</p>
+        </div>
+        
+        <!-- 로그인 페이지 -->
+        <div id="loginPage" class="page active">
+            <div style="text-align: center; margin: 50px 0;">
+                <h2 style="margin-bottom: 30px;">로그인</h2>
+                <div class="form-group">
+                    <label for="loginUsername">사용자명</label>
+                    <input type="text" id="loginUsername" placeholder="사용자명을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">비밀번호</label>
+                    <input type="password" id="loginPassword" placeholder="비밀번호를 입력하세요">
+                </div>
+                <div class="error-message" id="loginError" style="display: none;"></div>
+                <button class="btn" onclick="login()">로그인</button>
+                <button class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+            </div>
+        </div>
+        
+        <!-- 회원가입 페이지 -->
+        <div id="registerPage" class="page">
+            <div style="text-align: center; margin: 50px 0;">
+                <h2 style="margin-bottom: 30px;">회원가입</h2>
+                <div class="form-group">
+                    <label for="regEmail">이메일</label>
+                    <input type="email" id="regEmail" placeholder="이메일을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="regUsername">사용자명</label>
+                    <input type="text" id="regUsername" placeholder="사용자명을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="regFullName">성명</label>
+                    <input type="text" id="regFullName" placeholder="성명을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="regBirthYear">출생년도</label>
+                    <input type="number" id="regBirthYear" placeholder="예: 1955" min="1900" max="2000">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">비밀번호</label>
+                    <input type="password" id="regPassword" placeholder="비밀번호를 입력하세요">
+                </div>
+                <div class="error-message" id="registerError" style="display: none;"></div>
+                <button class="btn" onclick="register()">회원가입</button>
+                <button class="btn btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
+            </div>
+        </div>
+        
+        <!-- 세션 목록 페이지 -->
+        <div id="sessionListPage" class="page">
+            <h2 style="text-align: center; margin-bottom: 30px;">나의 인생 이야기 세션</h2>
+            <div class="session-list" id="sessionList">
+                <!-- 세션들이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="showMyStories()">내 이야기 보기</button>
+                <button class="btn btn-secondary" onclick="generateAutobiography()">자서전 생성</button>
+            </div>
+        </div>
+        
+        <!-- 인터뷰 페이지 -->
+        <div id="interviewPage" class="page">
+            <h2 id="currentSessionTitle" style="text-align: center; margin-bottom: 20px;"></h2>
+            <div class="interview-area" id="conversationArea">
+                <div class="ai-message">
+                    <strong>기억의 안내자:</strong> 안녕하세요! 오늘은 소중한 이야기를 들려주세요.
+                </div>
+            </div>
+            
+            <div class="voice-controls">
+                <button class="btn record-btn" id="recordBtn" onclick="toggleRecording()">🎤 음성으로 대화하기</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="userInput">텍스트로 입력하기</label>
+                <textarea id="userInput" rows="4" placeholder="여기에 이야기를 입력하세요..."></textarea>
+                <button class="btn" onclick="sendMessage()" style="margin-top: 10px;">메시지 보내기</button>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="endSession()">세션 종료</button>
+                <button class="btn btn-secondary" onclick="showSessionList()">세션 목록으로</button>
+            </div>
+        </div>
+        
+        <!-- 내 이야기 페이지 -->
+        <div id="myStoriesPage" class="page">
+            <h2 style="text-align: center; margin-bottom: 30px;">내가 들려준 이야기들</h2>
+            <div id="storiesList" class="session-list">
+                <!-- 이야기들이 여기에 표시됩니다 -->
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="showSessionList()">세션 목록으로</button>
+            </div>
+        </div>
+        
+        <!-- 자서전 페이지 -->
+        <div id="autobiographyPage" class="page">
+            <h2 style="text-align: center; margin-bottom: 30px;">나의 자서전</h2>
+            <div id="autobiographyContent" style="padding: 30px; background: #f8f9fa; border-radius: 15px; line-height: 2;">
+                <div class="loading">자서전을 생성 중입니다... 잠시만 기다려주세요.</div>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn" onclick="downloadAutobiography()">PDF 다운로드</button>
+                <button class="btn btn-secondary" onclick="showSessionList()">세션 목록으로</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentSession = null;
+        let conversations = [];
+        let isRecording = false;
+        let recognition = null;
+        
+        // API 기본 설정
+        const API_BASE = '/api';
+        
+        // 음성 인식 설정
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'ko-KR';
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                sendMessage();
+            };
+            
+            recognition.onerror = function(event) {
+                showError('음성 인식 오류: ' + event.error);
+                stopRecording();
+            };
+            
+            recognition.onend = function() {
+                stopRecording();
+            };
+        }
+        
+        // 페이지 전환 함수
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+        
+        function showLogin() {
+            showPage('loginPage');
+        }
+        
+        function showRegister() {
+            showPage('registerPage');
+        }
+        
+        function showSessionList() {
+            showPage('sessionListPage');
+            loadSessions();
+        }
+        
+        function showMyStories() {
+            showPage('myStoriesPage');
+            loadMyStories();
+        }
+        
+        // 로그인
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showError('사용자명과 비밀번호를 입력하세요.', 'loginError');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = { username: username, token: data.access_token };
+                    
+                    // UI 업데이트
+                    document.getElementById('currentUser').style.display = 'block';
+                    document.getElementById('userName').textContent = username;
+                    
+                    showSessionList();
+                    hideError('loginError');
+                } else {
+                    showError('로그인에 실패했습니다.', 'loginError');
+                }
+            } catch (error) {
+                showError('서버 연결에 실패했습니다.', 'loginError');
+            }
+        }
+        
+        // 회원가입
+        async function register() {
+            const email = document.getElementById('regEmail').value;
+            const username = document.getElementById('regUsername').value;
+            const fullName = document.getElementById('regFullName').value;
+            const birthYear = document.getElementById('regBirthYear').value;
+            const password = document.getElementById('regPassword').value;
+            
+            if (!email || !username || !fullName || !password) {
+                showError('모든 필드를 입력하세요.', 'registerError');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        username: username,
+                        full_name: fullName,
+                        birth_year: birthYear ? parseInt(birthYear) : null,
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    showSuccess('회원가입이 완료되었습니다! 로그인해주세요.', 'registerError');
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showError('회원가입에 실패했습니다.', 'registerError');
+                }
+            } catch (error) {
+                showError('서버 연결에 실패했습니다.', 'registerError');
+            }
+        }
+        
+        // 로그아웃
+        function logout() {
+            currentUser = null;
+            document.getElementById('currentUser').style.display = 'none';
+            showLogin();
+        }
+        
+        // 세션 로드
+        async function loadSessions() {
+            const sessionList = document.getElementById('sessionList');
+            sessionList.innerHTML = '';
+            
+            // 12개 세션 목록 (하드코딩)
+            const sessions = [
+                { number: 0, title: "프롤로그 - 나의 뿌리와 세상의 시작", description: "태어난 곳, 가족, 어린 시절의 기억" },
+                { number: 1, title: "Chapter 1 - 어린 시절의 보물같은 기억들", description: "초등학교 시절, 친구들, 선생님과의 추억" },
+                { number: 2, title: "Chapter 2 - 꿈을 키우던 청소년기", description: "중고등학교 시절, 꿈과 도전" },
+                { number: 3, title: "Chapter 3 - 청춘의 선택과 첫 발걸음", description: "진로 선택, 첫 직장, 사회 진출" },
+                { number: 4, title: "Chapter 4 - 사랑과 만남의 이야기", description: "연애, 결혼, 인생의 동반자" },
+                { number: 5, title: "Chapter 5 - 가정을 이루며", description: "신혼생활, 자녀 출산과 육아" },
+                { number: 6, title: "Chapter 6 - 일과 성취의 여정", description: "직업 발전, 성공과 실패의 경험" },
+                { number: 7, title: "Chapter 7 - 인생의 전환점들", description: "중요한 결정들, 위기와 극복" },
+                { number: 8, title: "Chapter 8 - 성숙의 시간", description: "중년기의 지혜, 자녀들의 성장" },
+                { number: 9, title: "Chapter 9 - 새로운 도전과 취미", description: "은퇴 후 새로운 시작, 취미 생활" },
+                { number: 10, title: "Chapter 10 - 지혜와 성찰", description: "인생을 돌아보며, 깨달음과 교훈" },
+                { number: 11, title: "에pilogue - 미래를 향한 메시지", description: "후손들에게 전하고 싶은 말" }
+            ];
+            
+            sessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = 'session-item';
+                sessionDiv.onclick = () => startInterview(session.number, session.title);
+                sessionDiv.innerHTML = `
+                    <div class="session-title">${session.title}</div>
+                    <div class="session-description">${session.description}</div>
+                `;
+                sessionList.appendChild(sessionDiv);
+            });
+        }
+        
+        // 인터뷰 시작
+        function startInterview(sessionNumber, sessionTitle) {
+            currentSession = { number: sessionNumber, title: sessionTitle };
+            document.getElementById('currentSessionTitle').textContent = sessionTitle;
+            
+            // 대화 영역 초기화
+            const conversationArea = document.getElementById('conversationArea');
+            conversationArea.innerHTML = `
+                <div class="ai-message">
+                    <strong>기억의 안내자:</strong> 안녕하세요! 오늘은 "${sessionTitle}"에 대한 소중한 이야기를 들려주세요. 편안하게 시작해보겠습니다.
+                </div>
+            `;
+            
+            showPage('interviewPage');
+        }
+        
+        // 메시지 전송
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 표시
+            addMessage('user', message);
+            userInput.value = '';
+            
+            // AI 응답 요청
+            try {
+                const response = await fetch(`${API_BASE}/conversations/interview`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentUser.token}`
+                    },
+                    body: JSON.stringify({
+                        session_number: currentSession.number,
+                        user_message: message,
+                        is_session_start: false
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage('ai', data.ai_response);
+                } else {
+                    addMessage('ai', '죄송합니다. 응답을 생성하는 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                addMessage('ai', '네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+            }
+        }
+        
+        // 대화 메시지 추가
+        function addMessage(type, message) {
+            const conversationArea = document.getElementById('conversationArea');
+            const messageDiv = document.createElement('div');
+            
+            if (type === 'ai') {
+                messageDiv.className = 'ai-message';
+                messageDiv.innerHTML = `<strong>기억의 안내자:</strong> ${message}`;
+            } else {
+                messageDiv.className = 'user-message';
+                messageDiv.innerHTML = `<strong>나:</strong> ${message}`;
+            }
+            
+            conversationArea.appendChild(messageDiv);
+            conversationArea.scrollTop = conversationArea.scrollHeight;
+        }
+        
+        // 음성 녹음
+        function toggleRecording() {
+            if (!recognition) {
+                showError('이 브라우저는 음성 인식을 지원하지 않습니다.');
+                return;
+            }
+            
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+        
+        function startRecording() {
+            recognition.start();
+            isRecording = true;
+            const btn = document.getElementById('recordBtn');
+            btn.textContent = '🛑 녹음 중... (클릭하여 정지)';
+            btn.classList.add('recording');
+        }
+        
+        function stopRecording() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isRecording = false;
+            const btn = document.getElementById('recordBtn');
+            btn.textContent = '🎤 음성으로 대화하기';
+            btn.classList.remove('recording');
+        }
+        
+        // 세션 종료
+        function endSession() {
+            if (confirm('정말로 세션을 종료하시겠습니까?')) {
+                showSessionList();
+            }
+        }
+        
+        // 내 이야기 로드
+        async function loadMyStories() {
+            const storiesList = document.getElementById('storiesList');
+            storiesList.innerHTML = '<div class="loading">이야기를 불러오는 중...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/conversations/my-conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayStories(data.conversations || []);
+                } else {
+                    storiesList.innerHTML = '<div class="error-message">이야기를 불러오는데 실패했습니다.</div>';
+                }
+            } catch (error) {
+                storiesList.innerHTML = '<div class="error-message">네트워크 오류가 발생했습니다.</div>';
+            }
+        }
+        
+        function displayStories(stories) {
+            const storiesList = document.getElementById('storiesList');
+            
+            if (stories.length === 0) {
+                storiesList.innerHTML = '<div style="text-align: center; padding: 50px;">아직 들려주신 이야기가 없습니다.</div>';
+                return;
+            }
+            
+            storiesList.innerHTML = '';
+            stories.forEach(story => {
+                const storyDiv = document.createElement('div');
+                storyDiv.className = 'session-item';
+                storyDiv.innerHTML = `
+                    <div class="session-title">세션 ${story.session_number}: ${story.session_title || '제목 없음'}</div>
+                    <div class="session-description">
+                        <strong>나:</strong> ${story.user_message}<br>
+                        <strong>AI:</strong> ${story.ai_response}
+                    </div>
+                    <div style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                        ${new Date(story.created_at).toLocaleString()}
+                    </div>
+                `;
+                storiesList.appendChild(storyDiv);
+            });
+        }
+        
+        // 자서전 생성
+        async function generateAutobiography() {
+            showPage('autobiographyPage');
+            
+            try {
+                const response = await fetch(`${API_BASE}/autobiography/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('autobiographyContent').innerHTML = data.autobiography.replace(/\n/g, '<br>');
+                } else {
+                    document.getElementById('autobiographyContent').innerHTML = '<div class="error-message">자서전 생성에 실패했습니다.</div>';
+                }
+            } catch (error) {
+                document.getElementById('autobiographyContent').innerHTML = '<div class="error-message">네트워크 오류가 발생했습니다.</div>';
+            }
+        }
+        
+        // PDF 다운로드
+        function downloadAutobiography() {
+            const content = document.getElementById('autobiographyContent').innerText;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'my_autobiography.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 유틸리티 함수들
+        function showError(message, elementId = null) {
+            if (elementId) {
+                const errorElement = document.getElementById(elementId);
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                errorElement.className = 'error-message';
+            } else {
+                alert(message);
+            }
+        }
+        
+        function showSuccess(message, elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            element.className = 'success-message';
+        }
+        
+        function hideError(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'none';
+        }
+        
+        // Enter 키로 메시지 전송
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // 로그인 폼에서 Enter 키 처리
+        document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>
