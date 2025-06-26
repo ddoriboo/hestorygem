@@ -54,11 +54,25 @@ static_dir = "/app/static"
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# 라우터 등록
+# 라우터 등록 (API 우선순위 보장)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(conversations.router, prefix="/api/conversations", tags=["conversations"])
 app.include_router(autobiography.router, prefix="/api/autobiography", tags=["autobiography"])
+
+# API 디버깅을 위한 엔드포인트
+@app.get("/api/debug")
+async def api_debug():
+    return {
+        "message": "API is working",
+        "available_endpoints": [
+            "/api/auth/login",
+            "/api/auth/register", 
+            "/api/sessions",
+            "/api/conversations",
+            "/api/autobiography"
+        ]
+    }
 
 @app.get("/")
 async def root():
@@ -83,17 +97,25 @@ async def api_root():
         "description": "AI 기반 시니어 자서전 작성 서비스"
     }
 
-# 프론트엔드 라우팅을 위한 catch-all
+# 프론트엔드 라우팅을 위한 catch-all (API 경로 제외)
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
-    # API 경로가 아닌 경우 프론트엔드 index.html 반환
-    if not full_path.startswith("api/"):
-        static_dir = "/app/static"
-        index_path = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
+    # API 경로는 무시 (다른 라우터에서 처리)
+    if full_path.startswith("api"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="API endpoint not found")
     
-    # 404 for other paths
+    # 정적 파일 확인
+    static_dir = "/app/static"
+    static_path = os.path.join(static_dir, full_path)
+    if os.path.exists(static_path) and os.path.isfile(static_path):
+        return FileResponse(static_path)
+    
+    # 그 외 모든 경우 index.html 반환 (SPA 라우팅)
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
     from fastapi import HTTPException
     raise HTTPException(status_code=404, detail="Not found")
 
