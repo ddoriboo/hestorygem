@@ -1,7 +1,11 @@
 from typing import List, Dict, Any, Optional
 import asyncio
 from datetime import datetime
-from ..services.gemini_service import gemini_service
+import os
+if os.environ.get('RAILWAY_DEPLOYMENT'):
+    from .gemini_service_railway import gemini_service
+else:
+    from .gemini_service import gemini_service
 from ..models.session_templates import SESSION_TEMPLATES
 import logging
 

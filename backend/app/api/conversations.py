@@ -15,7 +15,11 @@ from ..schemas.conversation import (
     InterviewRequest,
     InterviewResponse
 )
-from ..services.gemini_service import gemini_service
+import os
+if os.environ.get('RAILWAY_DEPLOYMENT'):
+    from ..services.gemini_service_railway import gemini_service
+else:
+    from ..services.gemini_service import gemini_service
 from ..services.interview_service import live_interview_service
 from .auth import get_current_user
 
