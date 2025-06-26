@@ -97,6 +97,20 @@ async def api_root():
         "description": "AI 기반 시니어 자서전 작성 서비스"
     }
 
+@app.get("/live")
+async def live_interview_page():
+    # 실시간 음성 인터뷰 페이지 서빙
+    static_dir = "/app/static"
+    live_path = os.path.join(static_dir, "live.html")
+    if os.path.exists(live_path):
+        return FileResponse(live_path)
+    else:
+        return {
+            "message": "실시간 음성 인터뷰 기능",
+            "note": "live.html 파일이 필요합니다",
+            "fallback_url": "/"
+        }
+
 # 프론트엔드 라우팅을 위한 catch-all (API 경로 제외)
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

@@ -22,6 +22,7 @@ COPY main.py .
 WORKDIR /app
 RUN mkdir -p ./static
 COPY webapp.html ./static/index.html
+COPY webapp_live.html ./static/live.html
 
 # 환경 변수 설정
 ENV PYTHONPATH=/app

@@ -18,10 +18,21 @@ from ..schemas.conversation import (
 import os
 if os.environ.get('RAILWAY_DEPLOYMENT'):
     from ..services.gemini_service_railway import gemini_service
-    live_interview_service = None  # Railway에서는 오디오 기능 비활성화
+    try:
+        from ..services.gemini_live_service import gemini_live_service
+        LIVE_AUDIO_AVAILABLE = True
+    except ImportError:
+        LIVE_AUDIO_AVAILABLE = False
+        gemini_live_service = None
 else:
     from ..services.gemini_service import gemini_service
     from ..services.interview_service import live_interview_service
+    try:
+        from ..services.gemini_live_service import gemini_live_service
+        LIVE_AUDIO_AVAILABLE = True
+    except ImportError:
+        LIVE_AUDIO_AVAILABLE = False
+        gemini_live_service = None
 from .auth import get_current_user
 
 router = APIRouter()
@@ -127,14 +138,23 @@ async def create_interview(
             detail=f"Failed to process interview request: {str(e)}"
         )
 
-@router.websocket("/live/{session_id}")
+@router.websocket("/live/{session_number}")
 async def websocket_live_interview(
     websocket: WebSocket,
-    session_id: int,
+    session_number: int,
     db: Session = Depends(get_db)
 ):
-    """WebSocket을 통한 실시간 음성 인터뷰"""
+    """실제 Gemini Live API를 사용한 실시간 음성 인터뷰"""
     await websocket.accept()
+    
+    # Google API 키 확인
+    if settings.google_api_key.startswith("AIzaSyDummy"):
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": "실시간 음성 기능을 사용하려면 실제 Google API 키가 필요합니다. Railway 환경변수에 GOOGLE_API_KEY를 설정해주세요."
+        }))
+        await websocket.close(code=4003, reason="API key required")
+        return
     
     try:
         # 인증 확인 (WebSocket에서는 헤더로 토큰 전달)

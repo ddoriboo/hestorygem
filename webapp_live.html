@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>He'story Live - 실시간 AI 음성 인터뷰</title>
+    <style>
+        /* 기존 스타일 + 실시간 인터뷰용 스타일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+            font-size: 20px;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            min-height: 80vh;
+        }
+        
+        .live-interview {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .status-indicator {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .status-connecting {
+            background: linear-gradient(45deg, #ffc107, #ff8c00);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-listening {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            animation: listening 1.5s infinite;
+        }
+        
+        .status-speaking {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            animation: speaking 0.8s infinite;
+        }
+        
+        .status-error {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        @keyframes listening {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.02); }
+            50% { transform: scale(1.05); }
+            75% { transform: scale(1.02); }
+        }
+        
+        @keyframes speaking {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
+        .volume-indicator {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .volume-bar {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 3px;
+        }
+        
+        .status-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .session-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .controls {
+            margin: 40px 0;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 18px 35px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 15px 10px;
+            border: none;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .conversation-display {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .message {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .message-ai {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+        }
+        
+        .message-user {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            text-align: right;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .live-tip {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="live-interview">
+            <h1>🎤 실시간 AI 음성 인터뷰</h1>
+            
+            <div class="session-title" id="sessionTitle">
+                세션을 선택해주세요
+            </div>
+            
+            <div class="status-indicator status-connecting" id="statusIndicator">
+                🔄
+                <div class="volume-indicator">
+                    <div class="volume-bar" id="volumeBar"></div>
+                </div>
+            </div>
+            
+            <div class="status-text" id="statusText">
+                연결 준비 중...
+            </div>
+            
+            <div class="live-tip">
+                <strong>🎯 실시간 음성 대화 특징:</strong><br>
+                • 자연스러운 대화처럼 AI가 적절한 타이밍에 응답합니다<br>
+                • 말하는 중간에 AI가 공감이나 질문을 할 수 있습니다<br>
+                • 실제 인터뷰어와 대화하는 것처럼 편안하게 이야기하세요<br>
+                • <strong>Google API 키가 필요합니다</strong>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" id="startBtn" onclick="startLiveInterview()">
+                    🎙️ 실시간 인터뷰 시작
+                </button>
+                <button class="btn btn-danger" id="endBtn" onclick="endLiveInterview()" disabled>
+                    ⏹️ 인터뷰 종료
+                </button>
+            </div>
+            
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+            
+            <div class="conversation-display" id="conversationDisplay" style="display: none;">
+                <h3>대화 내용</h3>
+                <div id="messages"></div>
+            </div>
+            
+            <div style="margin-top: 40px;">
+                <h3>세션 선택</h3>
+                <select id="sessionSelect" style="padding: 10px; font-size: 1.1em; margin: 10px; border-radius: 5px; width: 300px;">
+                    <option value="0">프롤로그 - 나의 뿌리와 세상의 시작</option>
+                    <option value="1">Chapter 1 - 어린 시절의 보물같은 기억들</option>
+                    <option value="2">Chapter 2 - 꿈을 키우던 청소년기</option>
+                    <option value="3">Chapter 3 - 청춘의 선택과 첫 발걸음</option>
+                    <option value="4">Chapter 4 - 사랑과 만남의 이야기</option>
+                    <option value="5">Chapter 5 - 가정을 이루며</option>
+                    <option value="6">Chapter 6 - 일과 성취의 여정</option>
+                    <option value="7">Chapter 7 - 인생의 전환점들</option>
+                    <option value="8">Chapter 8 - 성숙의 시간</option>
+                    <option value="9">Chapter 9 - 새로운 도전과 취미</option>
+                    <option value="10">Chapter 10 - 지혜와 성찰</option>
+                    <option value="11">Epilogue - 미래를 향한 메시지</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let mediaRecorder = null;
+        let audioStream = null;
+        let isRecording = false;
+        let audioContext = null;
+        let analyser = null;
+        let volumeInterval = null;
+        
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const sessionTitle = document.getElementById('sessionTitle');
+        const startBtn = document.getElementById('startBtn');
+        const endBtn = document.getElementById('endBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const conversationDisplay = document.getElementById('conversationDisplay');
+        const messages = document.getElementById('messages');
+        const sessionSelect = document.getElementById('sessionSelect');
+        
+        // 세션 제목 업데이트
+        sessionSelect.addEventListener('change', function() {
+            sessionTitle.textContent = this.options[this.selectedIndex].text;
+        });
+        
+        async function startLiveInterview() {
+            try {
+                hideError();
+                setStatus('connecting', '🔄', '실시간 세션 시작 중...');
+                
+                const sessionNumber = parseInt(sessionSelect.value);
+                
+                // 마이크 권한 요청
+                audioStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
+                
+                // 음성 분석 설정
+                setupAudioAnalysis();
+                
+                // WebSocket 연결
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/api/conversations/live/${sessionNumber}`;
+                
+                websocket = new WebSocket(wsUrl);
+                
+                websocket.onopen = function() {
+                    setStatus('listening', '👂', 'AI가 듣고 있습니다. 말씀해주세요!');
+                    startBtn.disabled = true;
+                    endBtn.disabled = false;
+                    conversationDisplay.style.display = 'block';
+                    startRecording();
+                };
+                
+                websocket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'audio_response') {
+                        handleAIResponse(data);
+                    } else if (data.type === 'error') {
+                        showError('AI 응답 오류: ' + data.message);
+                    }
+                };
+                
+                websocket.onclose = function() {
+                    setStatus('error', '❌', '연결이 끊어졌습니다');
+                    cleanup();
+                };
+                
+                websocket.onerror = function(error) {
+                    showError('WebSocket 연결 실패: 실시간 음성 기능을 사용하려면 Google API 키가 필요합니다.');
+                    cleanup();
+                };
+                
+            } catch (error) {
+                showError('마이크 권한이 필요합니다: ' + error.message);
+                cleanup();
+            }
+        }
+        
+        function setupAudioAnalysis() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(audioStream);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            
+            // 음량 표시기 시작
+            startVolumeIndicator();
+        }
+        
+        function startVolumeIndicator() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            volumeInterval = setInterval(() => {
+                if (analyser) {
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    const volume = (average / 255) * 100;
+                    document.getElementById('volumeBar').style.width = volume + '%';
+                }
+            }, 100);
+        }
+        
+        function startRecording() {
+            if (!audioStream) return;
+            
+            mediaRecorder = new MediaRecorder(audioStream, {
+                mimeType: 'audio/webm;codecs=opus'
+            });
+            
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0 && websocket && websocket.readyState === WebSocket.OPEN) {
+                    // 오디오 데이터를 Base64로 인코딩해서 전송
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const audioData = reader.result.split(',')[1]; // Base64 부분만
+                        websocket.send(JSON.stringify({
+                            type: 'audio_chunk',
+                            audio_data: audioData
+                        }));
+                    };
+                    reader.readAsDataURL(event.data);
+                }
+            };
+            
+            mediaRecorder.start(100); // 100ms마다 데이터 전송
+            isRecording = true;
+        }
+        
+        function handleAIResponse(data) {
+            // AI 응답 표시
+            addMessage('ai', data.text || 'AI가 응답했습니다');
+            
+            // AI 음성 재생
+            if (data.audio_data) {
+                playAIAudio(data.audio_data);
+            }
+        }
+        
+        async function playAIAudio(audioData) {
+            try {
+                setStatus('speaking', '🗣️', 'AI가 말하고 있습니다...');
+                
+                // Base64 오디오 데이터를 재생
+                const audioBlob = base64ToBlob(audioData, 'audio/wav');
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                audio.onended = function() {
+                    setStatus('listening', '👂', 'AI가 듣고 있습니다. 계속 말씀해주세요!');
+                    URL.revokeObjectURL(audioUrl);
+                };
+                
+                await audio.play();
+                
+            } catch (error) {
+                console.error('Audio playback error:', error);
+                setStatus('listening', '👂', 'AI가 듣고 있습니다. 계속 말씀해주세요!');
+            }
+        }
+        
+        function base64ToBlob(base64, mimeType) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], { type: mimeType });
+        }
+        
+        function addMessage(type, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.innerHTML = `<strong>${type === 'ai' ? '기억의 안내자' : '나'}:</strong> ${text}`;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        function endLiveInterview() {
+            if (websocket) {
+                websocket.close();
+            }
+            cleanup();
+        }
+        
+        function cleanup() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+            }
+            
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            if (volumeInterval) {
+                clearInterval(volumeInterval);
+                volumeInterval = null;
+            }
+            
+            mediaRecorder = null;
+            isRecording = false;
+            
+            setStatus('connecting', '🔄', '연결 준비 중...');
+            startBtn.disabled = false;
+            endBtn.disabled = true;
+        }
+        
+        function setStatus(statusClass, icon, text) {
+            statusIndicator.className = `status-indicator status-${statusClass}`;
+            statusIndicator.innerHTML = icon + '<div class="volume-indicator"><div class="volume-bar" id="volumeBar"></div></div>';
+            statusText.textContent = text;
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+        
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+        
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', function() {
+            cleanup();
+        });
+    </script>
+</body>
+</html>
