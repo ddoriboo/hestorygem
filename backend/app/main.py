@@ -62,7 +62,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "railway": "ok"}
+
+@app.get("/healthz")
+async def health_check_alt():
+    return {"status": "healthy", "railway": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
