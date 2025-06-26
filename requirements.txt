@@ -13,7 +13,7 @@ pydantic==2.5.3
 pydantic-settings==2.1.0
 google-generativeai==0.3.2
 google-genai==0.1.0
-pyaudio==0.2.14
+# pyaudio==0.2.14  # Railway 배포에서는 오디오 기능 비활성화
 aiofiles==23.2.1
 python-dotenv==1.0.0
 httpx==0.26.0
