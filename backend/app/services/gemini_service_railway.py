@@ -30,15 +30,42 @@ class GeminiService:
         
     async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """일반적인 텍스트 생성"""
-        model = self.client.models.get(settings.gemini_model)
+        # API 키가 더미값인 경우 fallback 응답
+        if settings.google_api_key.startswith("AIzaSyDummy"):
+            return self._get_fallback_response(prompt)
         
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        try:
+            model = self.client.models.get(settings.gemini_model)
+            
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            response = await model.generate_content_async(messages)
+            return response.text
+        except Exception as e:
+            print(f"Gemini API error: {e}")
+            return self._get_fallback_response(prompt)
+    
+    def _get_fallback_response(self, user_message: str) -> str:
+        """API 키가 없을 때 사용할 fallback 응답들"""
+        fallback_responses = [
+            "정말 소중한 이야기네요. 그때의 감정이 어떠셨는지 좀 더 자세히 들려주실 수 있을까요?",
+            "아, 그런 경험이 있으셨군요. 그 일이 당시 삶에 어떤 영향을 미쳤는지 궁금합니다.",
+            "말씀해주셔서 감사합니다. 그 순간이 특별했던 이유가 무엇인지 더 이야기해주세요.",
+            "정말 인상 깊은 이야기입니다. 그 경험을 통해 배우신 것이 있다면 무엇인가요?",
+            "그렇게 힘든 시간을 보내셨군요. 어떻게 그 어려움을 극복하셨는지 들려주세요.",
+            "아름다운 추억이네요. 그때의 행복했던 순간들을 좀 더 구체적으로 이야기해주실래요?",
+            "참 의미 있는 시간이었을 것 같습니다. 그 경험이 지금의 당신에게 어떤 의미인지 말씀해주세요."
+        ]
         
-        response = await model.generate_content_async(messages)
-        return response.text
+        # 사용자 메시지 길이에 따라 다른 응답
+        if len(user_message) < 10:
+            return "조금 더 자세히 이야기해주시면 좋겠어요. 어떤 기분이셨는지, 무슨 일이 있었는지 편하게 말씀해주세요."
+        
+        import random
+        return random.choice(fallback_responses)
     
     async def generate_interview_response(
         self, 
@@ -97,9 +124,13 @@ class GeminiService:
             return first_question
         
         # AI 백업 응답 (복잡한 상황 처리)
-        return await self.generate_contextual_response(
-            session_number, user_message, conversation_history
-        )
+        try:
+            return await self.generate_contextual_response(
+                session_number, user_message, conversation_history
+            )
+        except Exception as e:
+            print(f"Contextual response error: {e}")
+            return self._get_fallback_response(user_message)
     
     async def generate_contextual_response(
         self,
@@ -108,29 +139,63 @@ class GeminiService:
         conversation_history: list = []
     ) -> str:
         """맥락적 응답 생성 (백업 메서드)"""
-        session_template = SESSION_TEMPLATES[session_number]
+        # API 키가 더미값인 경우 fallback
+        if settings.google_api_key.startswith("AIzaSyDummy"):
+            return self._get_session_specific_response(session_number, user_message)
         
-        system_prompt = f"""{MEMORY_GUIDE_SYSTEM_PROMPT}
+        try:
+            session_template = SESSION_TEMPLATES[session_number]
+            
+            system_prompt = f"""{MEMORY_GUIDE_SYSTEM_PROMPT}
 
 현재 세션: {session_template['title']}
-세션 목표: {session_template['objective']}
+세션 목표: {session_template.get('objective', session_template.get('description', ''))}
 
 현재 사용자가 말씀하신 내용에 대해 '기억의 안내자'로서 적절한 응답을 해주세요."""
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # 최근 대화 히스토리 추가
+            for conv in conversation_history[-3:]:
+                if conv.get("user_message"):
+                    messages.append({"role": "user", "content": conv.get("user_message", "")})
+                if conv.get("ai_response"):
+                    messages.append({"role": "assistant", "content": conv.get("ai_response", "")})
+            
+            messages.append({"role": "user", "content": user_message})
+            
+            model = self.client.models.get(settings.gemini_model)
+            response = await model.generate_content_async(messages)
+            return response.text
+        except Exception as e:
+            print(f"Generate contextual response error: {e}")
+            return self._get_session_specific_response(session_number, user_message)
+    
+    def _get_session_specific_response(self, session_number: int, user_message: str) -> str:
+        """세션별 맞춤 fallback 응답"""
+        session_responses = {
+            0: [  # 프롤로그 - 나의 뿌리와 세상의 시작
+                "어린 시절 살았던 동네는 어떤 모습이었나요?",
+                "가족 중에서 가장 기억에 남는 분은 누구신가요?",
+                "어렸을 때 가장 좋아했던 놀이는 무엇이었나요?"
+            ],
+            1: [  # 어린 시절의 보물같은 기억들
+                "초등학교 때 가장 기억에 남는 선생님은 어떤 분이셨나요?",
+                "어린 시절 가장 친했던 친구와의 추억을 들려주세요.",
+                "그 시절 가장 설렜던 순간은 언제였나요?"
+            ],
+            2: [  # 꿈을 키우던 청소년기
+                "중고등학교 시절 꿈꿨던 미래는 어떤 모습이었나요?",
+                "청소년기에 가장 힘들었던 일은 무엇이었나요?",
+                "그 시절 가장 열정적으로 했던 활동이 있나요?"
+            ]
+        }
         
-        messages = [{"role": "system", "content": system_prompt}]
-        
-        # 최근 대화 히스토리 추가
-        for conv in conversation_history[-3:]:
-            if conv.get("user_message"):
-                messages.append({"role": "user", "content": conv.get("user_message", "")})
-            if conv.get("ai_response"):
-                messages.append({"role": "assistant", "content": conv.get("ai_response", "")})
-        
-        messages.append({"role": "user", "content": user_message})
-        
-        model = self.client.models.get(settings.gemini_model)
-        response = await model.generate_content_async(messages)
-        return response.text
+        if session_number in session_responses:
+            import random
+            return random.choice(session_responses[session_number])
+        else:
+            return self._get_fallback_response(user_message)
     
     async def generate_autobiography(self, user_id: int, all_conversations: list) -> str:
         """전체 대화를 바탕으로 자서전 생성"""

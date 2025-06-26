@@ -36,9 +36,10 @@ class ConversationList(BaseModel):
     total: int
 
 class InterviewRequest(BaseModel):
-    session_id: int
-    conversation_type: ConversationType
-    message: Optional[str] = None
+    session_number: int  # 웹앱에서 사용하는 필드명
+    user_message: str    # 웹앱에서 사용하는 필드명
+    is_session_start: bool = False
+    conversation_type: ConversationType = ConversationType.TEXT
 
 class InterviewResponse(BaseModel):
     conversation_id: int

@@ -65,59 +65,67 @@ async def create_interview(
     db: Session = Depends(get_db)
 ):
     """텍스트 기반 인터뷰 진행"""
-    # 세션 확인
-    session = db.query(UserSession).filter(
-        UserSession.id == request.session_id,
-        UserSession.user_id == current_user.id
-    ).first()
+    logger.info(f"Interview request from user {current_user.username}: session {request.session_number}")
     
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
+    try:
+        # 세션 번호를 기반으로 대화 진행 (실제 session_id가 아닌 session_number 사용)
+        # 이전 대화 내역 조회
+        prev_conversations = db.query(Conversation).filter(
+            Conversation.user_id == current_user.id,
+            Conversation.session_number == request.session_number
+        ).order_by(Conversation.created_at.desc()).limit(5).all()
+        
+        conversation_history = [
+            {
+                "user_message": conv.user_message,
+                "ai_response": conv.ai_response
+            }
+            for conv in reversed(prev_conversations)
+        ]
+        
+        # 세션 시작인지 확인 (첫 번째 대화인지)
+        is_session_start = len(prev_conversations) == 0 or request.is_session_start
+        
+        # AI 응답 생성 (fallback 포함)
+        try:
+            ai_response = await gemini_service.generate_interview_response(
+                session_id=request.session_number,
+                session_number=request.session_number,
+                user_message=request.user_message,
+                conversation_history=conversation_history,
+                is_session_start=is_session_start
+            )
+        except Exception as ai_error:
+            logger.error(f"AI response generation failed: {ai_error}")
+            ai_response = "감사합니다. 소중한 이야기를 들려주셔서 고맙습니다. 더 자세히 이야기해주실 수 있을까요?"
+        
+        # 대화 저장
+        new_conversation = Conversation(
+            user_id=current_user.id,
+            session_number=request.session_number,
+            conversation_type=ConversationType.TEXT,
+            user_message=request.user_message,
+            ai_response=ai_response,
+            created_at=datetime.utcnow()
         )
-    
-    # 이전 대화 내역 조회
-    prev_conversations = db.query(Conversation).filter(
-        Conversation.session_id == request.session_id
-    ).order_by(Conversation.created_at.desc()).limit(5).all()
-    
-    conversation_history = [
-        {
-            "user_message": conv.user_message,
-            "ai_response": conv.ai_response
-        }
-        for conv in reversed(prev_conversations)
-    ]
-    
-    # 세션 시작인지 확인 (첫 번째 대화인지)
-    is_session_start = len(prev_conversations) == 0
-    
-    # AI 응답 생성
-    ai_response = await gemini_service.generate_interview_response(
-        session_id=request.session_id,
-        session_number=session.session_number,
-        user_message=request.message,
-        conversation_history=conversation_history,
-        is_session_start=is_session_start
-    )
-    
-    # 대화 저장
-    new_conversation = Conversation(
-        session_id=request.session_id,
-        conversation_type=ConversationType.TEXT,
-        user_message=request.message,
-        ai_response=ai_response
-    )
-    
-    db.add(new_conversation)
-    db.commit()
-    db.refresh(new_conversation)
-    
-    return InterviewResponse(
-        conversation_id=new_conversation.id,
-        ai_response=ai_response
-    )
+        
+        db.add(new_conversation)
+        db.commit()
+        db.refresh(new_conversation)
+        
+        logger.info(f"Conversation saved with ID: {new_conversation.id}")
+        
+        return InterviewResponse(
+            conversation_id=new_conversation.id,
+            ai_response=ai_response
+        )
+        
+    except Exception as e:
+        logger.error(f"Interview error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process interview request: {str(e)}"
+        )
 
 @router.websocket("/live/{session_id}")
 async def websocket_live_interview(
@@ -234,6 +242,38 @@ async def websocket_live_interview(
             db.commit()
         except Exception as e:
             logger.error(f"Error saving conversation: {e}")
+
+@router.get("/my-conversations")
+async def get_my_conversations(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """현재 사용자의 모든 대화 조회"""
+    conversations = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id
+    ).order_by(Conversation.created_at.desc()).offset(skip).limit(limit).all()
+    
+    total = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id
+    ).count()
+    
+    # 웹앱에서 사용할 수 있도록 session_title 추가
+    from ..models.session_templates import SESSION_TEMPLATES
+    conversation_list = []
+    for conv in conversations:
+        conv_dict = {
+            "id": conv.id,
+            "session_number": conv.session_number,
+            "user_message": conv.user_message,
+            "ai_response": conv.ai_response,
+            "created_at": conv.created_at.isoformat(),
+            "session_title": SESSION_TEMPLATES[conv.session_number]["title"] if conv.session_number < len(SESSION_TEMPLATES) else f"세션 {conv.session_number}"
+        }
+        conversation_list.append(conv_dict)
+    
+    return {"conversations": conversation_list, "total": total}
 
 @router.post("/generate-autobiography")
 async def generate_autobiography(

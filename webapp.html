@@ -380,8 +380,9 @@
         const API_BASE = '/api';
         
         // 음성 인식 설정
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'ko-KR';
@@ -389,17 +390,42 @@
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
                 document.getElementById('userInput').value = transcript;
+                addMessage('user', `[음성입력] ${transcript}`);
                 sendMessage();
             };
             
             recognition.onerror = function(event) {
-                showError('음성 인식 오류: ' + event.error);
+                console.log('Speech recognition error:', event.error);
+                let errorMessage = '음성 인식 오류가 발생했습니다.';
+                
+                switch(event.error) {
+                    case 'network':
+                        errorMessage = '네트워크 연결을 확인해주세요.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = '마이크 권한을 허용해주세요.';
+                        break;
+                    case 'no-speech':
+                        errorMessage = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
+                        break;
+                    case 'aborted':
+                        errorMessage = '음성 인식이 중단되었습니다.';
+                        break;
+                }
+                
+                addMessage('ai', `죄송합니다. ${errorMessage} 텍스트로 입력해주세요.`);
                 stopRecording();
+            };
+            
+            recognition.onstart = function() {
+                addMessage('ai', '🎤 음성을 듣고 있습니다. 말씀해주세요!');
             };
             
             recognition.onend = function() {
                 stopRecording();
             };
+        } else {
+            console.log('Speech recognition not supported');
         }
         
         // 페이지 전환 함수
@@ -555,6 +581,12 @@
                 <div class="ai-message">
                     <strong>기억의 안내자:</strong> 안녕하세요! 오늘은 "${sessionTitle}"에 대한 소중한 이야기를 들려주세요. 편안하게 시작해보겠습니다.
                 </div>
+                <div class="ai-message" style="background: #fff3cd; border-left-color: #ffc107;">
+                    <strong>💡 사용 팁:</strong> 
+                    • 🎤 <strong>음성 기능</strong>: Chrome 브라우저에서 마이크 권한 허용 후 사용<br>
+                    • ⌨️ <strong>텍스트 입력</strong>: 아래 텍스트 창에 직접 입력<br>
+                    • 🔒 <strong>HTTPS 필요</strong>: 음성 기능은 보안 연결에서만 작동합니다
+                </div>
             `;
             
             showPage('interviewPage');
@@ -617,7 +649,7 @@
         // 음성 녹음
         function toggleRecording() {
             if (!recognition) {
-                showError('이 브라우저는 음성 인식을 지원하지 않습니다.');
+                addMessage('ai', '죄송합니다. 이 브라우저는 음성 인식을 지원하지 않습니다. Chrome 브라우저를 사용하시거나 텍스트로 입력해주세요.');
                 return;
             }
             
@@ -629,16 +661,25 @@
         }
         
         function startRecording() {
-            recognition.start();
-            isRecording = true;
-            const btn = document.getElementById('recordBtn');
-            btn.textContent = '🛑 녹음 중... (클릭하여 정지)';
-            btn.classList.add('recording');
+            try {
+                recognition.start();
+                isRecording = true;
+                const btn = document.getElementById('recordBtn');
+                btn.textContent = '🛑 녹음 중... (클릭하여 정지)';
+                btn.classList.add('recording');
+            } catch (error) {
+                console.error('Failed to start recording:', error);
+                addMessage('ai', '음성 인식을 시작할 수 없습니다. 텍스트로 입력해주세요.');
+            }
         }
         
         function stopRecording() {
-            if (recognition) {
-                recognition.stop();
+            if (recognition && isRecording) {
+                try {
+                    recognition.stop();
+                } catch (error) {
+                    console.error('Failed to stop recording:', error);
+                }
             }
             isRecording = false;
             const btn = document.getElementById('recordBtn');
