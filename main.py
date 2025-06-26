@@ -26,17 +26,18 @@ except ImportError as e:
     
     # 기본 FastAPI 앱 생성 (fallback)
     from fastapi import FastAPI
-    app = FastAPI(title="He'story API", description="Railway Deployment")
+    application = FastAPI(title="He'story API", description="Railway Deployment")
     
-    @app.get("/")
+    @application.get("/")
     async def root():
         return {"message": "He'story API is running on Railway", "status": "ok"}
     
-    @app.get("/health")
+    @application.get("/health")
     async def health():
         return {"status": "healthy", "deployment": "railway"}
-    
-    application = app
+
+# uvicorn이 직접 참조할 수 있도록 app도 설정
+app = application
 
 if __name__ == "__main__":
     import uvicorn
