@@ -18,21 +18,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY main.py .
 
-# 프론트엔드 빌드를 위한 Node.js 설치
-RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# 프론트엔드 코드 복사 및 빌드
-COPY frontend/ ./frontend/
-WORKDIR /app/frontend
-RUN npm install && npm run build
-
-# 빌드된 프론트엔드를 정적 파일 디렉토리로 복사
+# 간단한 정적 프론트엔드 생성 (React 빌드 대신)
 WORKDIR /app
-RUN mkdir -p ./static && cp -r ./frontend/build/* ./static/
+RUN mkdir -p ./static
+COPY simple_frontend.html ./static/index.html
 
 # 환경 변수 설정
 ENV PYTHONPATH=/app
