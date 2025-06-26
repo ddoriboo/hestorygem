@@ -1,5 +1,8 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from contextlib import asynccontextmanager
 import logging
 from .config import settings
@@ -46,6 +49,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 정적 파일 서빙 (프론트엔드)
+static_dir = "/app/static"
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 # 라우터 등록
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
@@ -54,11 +62,40 @@ app.include_router(autobiography.router, prefix="/api/autobiography", tags=["aut
 
 @app.get("/")
 async def root():
+    # 프론트엔드 index.html 서빙
+    static_dir = "/app/static"
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    else:
+        return {
+            "message": "Welcome to He'story API",
+            "version": settings.version,
+            "description": "AI 기반 시니어 자서전 작성 서비스",
+            "note": "프론트엔드 빌드 파일을 찾을 수 없습니다."
+        }
+
+@app.get("/api")
+async def api_root():
     return {
         "message": "Welcome to He'story API",
         "version": settings.version,
         "description": "AI 기반 시니어 자서전 작성 서비스"
     }
+
+# 프론트엔드 라우팅을 위한 catch-all
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # API 경로가 아닌 경우 프론트엔드 index.html 반환
+    if not full_path.startswith("api/"):
+        static_dir = "/app/static"
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    
+    # 404 for other paths
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="Not found")
 
 @app.get("/health")
 async def health_check():
