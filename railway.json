@@ -4,10 +4,8 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyType": "NEVER",
     "sleepApplication": false,
-    "numReplicas": 1,
-    "healthcheckPath": "/health",
-    "healthcheckTimeout": 300
+    "numReplicas": 1
   }
 }

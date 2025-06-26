@@ -52,6 +52,7 @@ except Exception as e:
     async def debug():
         import sys
         debug_info = {
+            "message": "Backend imported successfully! This debug endpoint should not be visible.",
             "working_directory": os.getcwd(),
             "directory_contents": os.listdir('.') if os.path.exists('.') else [],
             "backend_exists": os.path.exists('backend'),
