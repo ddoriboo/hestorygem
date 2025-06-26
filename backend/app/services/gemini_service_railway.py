@@ -32,6 +32,8 @@ class GeminiService:
             print(f"Using fallback response - API key: {settings.google_api_key[:10]}...")
             return self._get_fallback_response(prompt)
         
+        print(f"✅ Using real Gemini API - Key: {settings.google_api_key[:10]}...")
+        
         try:
             model = genai.GenerativeModel(settings.gemini_model)
             
@@ -139,6 +141,8 @@ class GeminiService:
         if not settings.google_api_key or settings.google_api_key.startswith("AIzaSyDummy"):
             print(f"Using fallback contextual response - API key: {settings.google_api_key[:10] if settings.google_api_key else 'None'}...")
             return self._get_session_specific_response(session_number, user_message)
+        
+        print(f"✅ Using real Gemini API for contextual response - Key: {settings.google_api_key[:10]}...")
         
         try:
             session_template = SESSION_TEMPLATES[session_number]
