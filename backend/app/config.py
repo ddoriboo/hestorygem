@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # Database
-    database_url: str = "sqlite:///./hestory.db"  # SQLite 기본값 (Railway에서 PostgreSQL 설정 시 덮어씀)
+    database_url: str = "sqlite:///app/hestory.db"  # SQLite 기본값 (Railway에서 PostgreSQL 설정 시 덮어씀)
     
     # Security
     secret_key: str = "railway-default-secret-key-change-in-production"

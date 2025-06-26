@@ -11,10 +11,16 @@ from .models import user, session, conversation
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 데이터베이스 테이블 생성
-user.Base.metadata.create_all(bind=engine)
-session.Base.metadata.create_all(bind=engine)
-conversation.Base.metadata.create_all(bind=engine)
+# 데이터베이스 테이블 생성 (에러 처리 추가)
+try:
+    logger.info("Creating database tables...")
+    user.Base.metadata.create_all(bind=engine)
+    session.Base.metadata.create_all(bind=engine)
+    conversation.Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Failed to create database tables: {e}")
+    # Railway 환경에서는 계속 진행 (나중에 테이블 생성 재시도 가능)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
