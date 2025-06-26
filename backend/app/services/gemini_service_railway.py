@@ -11,17 +11,14 @@ try:
 except ImportError:
     AUDIO_AVAILABLE = False
     
-from google import genai
+import google.generativeai as genai
 from ..config import settings
 from ..models.session_templates import SESSION_TEMPLATES, MEMORY_GUIDE_SYSTEM_PROMPT
 from .conversation_manager import conversation_manager
 
 class GeminiService:
     def __init__(self):
-        self.client = genai.Client(
-            api_key=settings.google_api_key,
-            http_options={"api_version": "v1beta"}
-        )
+        genai.configure(api_key=settings.google_api_key)
         # PyAudio는 사용 가능한 경우에만 초기화
         if AUDIO_AVAILABLE:
             self.pya = pyaudio.PyAudio()
@@ -35,14 +32,12 @@ class GeminiService:
             return self._get_fallback_response(prompt)
         
         try:
-            model = self.client.models.get(settings.gemini_model)
+            model = genai.GenerativeModel(settings.gemini_model)
             
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
+            # 시스템 프롬프트와 사용자 메시지 결합
+            full_prompt = f"{system_prompt}\n\nUser: {prompt}" if system_prompt else prompt
             
-            response = await model.generate_content_async(messages)
+            response = model.generate_content(full_prompt)
             return response.text
         except Exception as e:
             print(f"Gemini API error: {e}")
@@ -153,19 +148,20 @@ class GeminiService:
 
 현재 사용자가 말씀하신 내용에 대해 '기억의 안내자'로서 적절한 응답을 해주세요."""
             
-            messages = [{"role": "system", "content": system_prompt}]
+            # 대화 히스토리와 현재 메시지 결합
+            full_context = system_prompt + "\n\n"
             
             # 최근 대화 히스토리 추가
             for conv in conversation_history[-3:]:
                 if conv.get("user_message"):
-                    messages.append({"role": "user", "content": conv.get("user_message", "")})
+                    full_context += f"사용자: {conv.get('user_message', '')}\n"
                 if conv.get("ai_response"):
-                    messages.append({"role": "assistant", "content": conv.get("ai_response", "")})
+                    full_context += f"기억의 안내자: {conv.get('ai_response', '')}\n"
             
-            messages.append({"role": "user", "content": user_message})
+            full_context += f"사용자: {user_message}\n기억의 안내자:"
             
-            model = self.client.models.get(settings.gemini_model)
-            response = await model.generate_content_async(messages)
+            model = genai.GenerativeModel(settings.gemini_model)
+            response = model.generate_content(full_context)
             return response.text
         except Exception as e:
             print(f"Generate contextual response error: {e}")
@@ -214,11 +210,11 @@ class GeminiService:
         
         prompt = f"다음 인터뷰 내용을 바탕으로 자서전을 작성해주세요:\n\n{organized_content}"
         
-        model = self.client.models.get(settings.gemini_model)
-        response = await model.generate_content_async([
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ])
+        model = genai.GenerativeModel(settings.gemini_model)
+        
+        # 간단한 프롬프트로 자서전 생성
+        full_prompt = f"{system_prompt}\n\n{prompt}"
+        response = model.generate_content(full_prompt)
         
         return response.text
     

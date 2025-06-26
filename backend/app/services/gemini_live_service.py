@@ -3,8 +3,7 @@ import json
 import base64
 import logging
 from typing import Optional, AsyncGenerator
-import websockets
-from google import genai
+import google.generativeai as genai
 from ..config import settings
 from ..models.session_templates import SESSION_TEMPLATES, MEMORY_GUIDE_SYSTEM_PROMPT
 
@@ -14,10 +13,7 @@ class GeminiLiveService:
     """실제 Gemini Live API를 사용한 실시간 음성 대화 서비스"""
     
     def __init__(self):
-        self.client = genai.Client(
-            api_key=settings.google_api_key,
-            http_options={"api_version": "v1beta"}
-        )
+        genai.configure(api_key=settings.google_api_key)
         self.active_sessions = {}
     
     async def start_live_session(self, session_id: int, session_number: int) -> str:

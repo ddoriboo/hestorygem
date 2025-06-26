@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     
     # Google API
     google_api_key: str = "AIzaSyDummy"  # Railway에서 실제 키 설정 필요
-    gemini_model: str = "models/gemini-2.0-flash-exp"
-    gemini_live_model: str = "models/gemini-2.0-flash-live-001"
+    gemini_model: str = "gemini-pro"
+    gemini_live_model: str = "gemini-pro"
     
     # Audio Settings
     audio_format: str = "pcm"
