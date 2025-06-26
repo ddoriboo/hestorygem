@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 class Settings(BaseSettings):
     # App
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440  # 24시간 (더 긴 세션)
     
     # Google API
-    google_api_key: str = "AIzaSyDummy"  # Railway에서 실제 키 설정 필요
+    google_api_key: str  # Railway 환경변수에서 가져옴
     gemini_model: str = "gemini-pro"
     gemini_live_model: str = "gemini-pro"
     
@@ -33,5 +34,12 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Google API 키 디버깅
+        print(f"Google API Key loaded: {self.google_api_key[:10] if self.google_api_key else 'None'}...")
+        print(f"Google API Key length: {len(self.google_api_key) if self.google_api_key else 0}")
+        print(f"Environment GOOGLE_API_KEY: {os.environ.get('GOOGLE_API_KEY', 'Not set')[:10]}...")
 
 settings = Settings()

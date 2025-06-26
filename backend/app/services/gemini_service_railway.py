@@ -27,8 +27,9 @@ class GeminiService:
         
     async def generate_text(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """일반적인 텍스트 생성"""
-        # API 키가 더미값인 경우 fallback 응답
-        if settings.google_api_key.startswith("AIzaSyDummy"):
+        # API 키가 없거나 더미값인 경우 fallback 응답
+        if not settings.google_api_key or settings.google_api_key.startswith("AIzaSyDummy"):
+            print(f"Using fallback response - API key: {settings.google_api_key[:10]}...")
             return self._get_fallback_response(prompt)
         
         try:
@@ -134,8 +135,9 @@ class GeminiService:
         conversation_history: list = []
     ) -> str:
         """맥락적 응답 생성 (백업 메서드)"""
-        # API 키가 더미값인 경우 fallback
-        if settings.google_api_key.startswith("AIzaSyDummy"):
+        # API 키가 없거나 더미값인 경우 fallback
+        if not settings.google_api_key or settings.google_api_key.startswith("AIzaSyDummy"):
+            print(f"Using fallback contextual response - API key: {settings.google_api_key[:10] if settings.google_api_key else 'None'}...")
             return self._get_session_specific_response(session_number, user_message)
         
         try:

@@ -178,9 +178,13 @@ async def create_test_user(db: Session = Depends(get_db)):
     
     return {
         "message": "Test user created successfully",
-        "username": "testuser",
+        "username": "testuser", 
         "password": "test123",
-        "email": "test@example.com"
+        "email": "test@example.com",
+        "debug_info": {
+            "google_api_key_set": bool(settings.google_api_key and not settings.google_api_key.startswith("AIzaSyDummy")),
+            "api_key_prefix": settings.google_api_key[:10] if settings.google_api_key else None
+        }
     }
 
 @router.get("/me", response_model=UserSchema)

@@ -148,10 +148,10 @@ async def websocket_live_interview(
     await websocket.accept()
     
     # Google API 키 확인
-    if settings.google_api_key.startswith("AIzaSyDummy"):
+    if not settings.google_api_key or settings.google_api_key.startswith("AIzaSyDummy"):
         await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": "실시간 음성 기능을 사용하려면 실제 Google API 키가 필요합니다. Railway 환경변수에 GOOGLE_API_KEY를 설정해주세요."
+            "type": "error", 
+            "message": f"실시간 음성 기능을 사용하려면 실제 Google API 키가 필요합니다. 현재: {settings.google_api_key[:10] if settings.google_api_key else 'None'}..."
         }))
         await websocket.close(code=4003, reason="API key required")
         return

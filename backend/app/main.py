@@ -71,7 +71,12 @@ async def api_debug():
             "/api/sessions",
             "/api/conversations",
             "/api/autobiography"
-        ]
+        ],
+        "google_api_status": {
+            "key_configured": bool(settings.google_api_key and not settings.google_api_key.startswith("AIzaSyDummy")),
+            "key_prefix": settings.google_api_key[:10] if settings.google_api_key else None,
+            "model": settings.gemini_model
+        }
     }
 
 @app.get("/")
