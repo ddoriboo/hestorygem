@@ -2,7 +2,12 @@ import asyncio
 import base64
 import io
 from typing import Optional, Dict, Any
-import pyaudio
+# Railway에서는 pyaudio 사용 안함
+try:
+    import pyaudio
+    AUDIO_AVAILABLE = True
+except ImportError:
+    AUDIO_AVAILABLE = False
 from google import genai
 from ..config import settings
 from ..models.session_templates import SESSION_TEMPLATES, MEMORY_GUIDE_SYSTEM_PROMPT

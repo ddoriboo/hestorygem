@@ -18,9 +18,10 @@ from ..schemas.conversation import (
 import os
 if os.environ.get('RAILWAY_DEPLOYMENT'):
     from ..services.gemini_service_railway import gemini_service
+    live_interview_service = None  # Railway에서는 오디오 기능 비활성화
 else:
     from ..services.gemini_service import gemini_service
-from ..services.interview_service import live_interview_service
+    from ..services.interview_service import live_interview_service
 from .auth import get_current_user
 
 router = APIRouter()
