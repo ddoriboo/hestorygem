@@ -33,10 +33,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    return encoded_jwt
+    
+    try:
+        encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+        return encoded_jwt
+    except Exception as e:
+        print(f"JWT encoding error: {e}")
+        raise HTTPException(status_code=500, detail="Token creation failed")
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -118,18 +123,65 @@ async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
 # 웹앱용 로그인 엔드포인트 (form data 형식)
 @router.post("/login", response_model=Token)
 async def login_web(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    print(f"Login attempt for username: {form_data.username}")
+    
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        print(f"Authentication failed for username: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    print(f"User authenticated successfully: {user.username}")
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
+    print(f"Token created successfully for user: {user.username}")
     return {"access_token": access_token, "token_type": "bearer"}
+
+# 테스트용 사용자 생성 엔드포인트
+@router.post("/create-test-user")
+async def create_test_user(db: Session = Depends(get_db)):
+    # 테스트 사용자가 이미 있는지 확인
+    test_user = db.query(User).filter(User.username == "testuser").first()
+    if test_user:
+        return {"message": "Test user already exists", "username": "testuser"}
+    
+    # 테스트 사용자 생성
+    hashed_password = get_password_hash("test123")
+    db_user = User(
+        email="test@example.com",
+        username="testuser",
+        full_name="테스트 사용자",
+        birth_year=1960,
+        hashed_password=hashed_password,
+        created_at=datetime.utcnow()
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # 12개 세션 자동 생성
+    for template in SESSION_TEMPLATES:
+        session = UserSession(
+            user_id=db_user.id,
+            session_number=template["session_number"],
+            title=template["title"],
+            description=template["description"],
+            is_completed=False
+        )
+        db.add(session)
+    db.commit()
+    
+    return {
+        "message": "Test user created successfully",
+        "username": "testuser",
+        "password": "test123",
+        "email": "test@example.com"
+    }
 
 @router.get("/me", response_model=UserSchema)
 async def read_users_me(current_user: User = Depends(get_current_user)):

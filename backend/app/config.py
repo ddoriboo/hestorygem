@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///app/hestory.db"  # SQLite 기본값 (Railway에서 PostgreSQL 설정 시 덮어씀)
     
     # Security
-    secret_key: str = "railway-default-secret-key-change-in-production"
+    secret_key: str = "hestory-railway-jwt-secret-key-2025"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 1440  # 24시간 (더 긴 세션)
     
     # Google API
-    google_api_key: str = "demo-key"  # Railway에서 실제 키 설정 필요
+    google_api_key: str = "AIzaSyDummy"  # Railway에서 실제 키 설정 필요
     gemini_model: str = "models/gemini-2.0-flash-exp"
     gemini_live_model: str = "models/gemini-2.0-flash-live-001"
     
